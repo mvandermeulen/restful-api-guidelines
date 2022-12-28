@@ -29,8 +29,9 @@ ensure that our APIs:
 
 Ideally, all Zalando APIs will look like the same author created them.
 
+
 [[conventions-used-in-these-guidelines]]
-== Conventions Used in These Guidelines
+== Conventions used in these guidelines
 
 The requirement level keywords "MUST", "MUST NOT", "REQUIRED", "SHALL",
 "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and
@@ -38,13 +39,14 @@ The requirement level keywords "MUST", "MUST NOT", "REQUIRED", "SHALL",
 interpreted as described in https://www.ietf.org/rfc/rfc2119.txt[RFC
 2119].
 
+
 [[zalando-specific-information]]
 == Zalando specific information
 
 The purpose of our "RESTful API guidelines" is to define standards to
 successfully establish "consistent API look and feel" quality. The
-https://confluence.zalando.net/display/GUL/API+Guild[API Guild [internal
-link]] drafted and owns this document. Teams are responsible to fulfill
+{api-guild}[API Guild (internal_link)] 
+drafted and owns this document. Teams are responsible to fulfill
 these guidelines during API development and are encouraged to contribute
 to guideline evolution via pull requests.
 
@@ -61,4 +63,3 @@ outdated rules
 Furthermore you should keep in mind that once an API becomes public
 externally available, it has to be re-reviewed and changed according to
 current guidelines - for sake of overall consistency.
-

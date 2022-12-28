@@ -1,8 +1,9 @@
 [[compatibility]]
-= Compatibility
+= REST Design - Compatibility
+
 
 [#106]
-== {MUST} Don’t Break Backward Compatibility
+== {MUST} not break backward compatibility
 
 Change APIs, but keep all consumers running. Consumers usually have independent
 release lifecycles, focus on stability, and avoid changes that do not provide
@@ -12,7 +13,8 @@ consumers that cannot be broken via unilateral decisions.
 There are two techniques to change APIs without breaking them:
 
 * follow rules for compatible extensions
-* introduce new API versions and still support older versions
+* introduce new API versions and still support older versions with 
+  https://opensource.zalando.com/restful-api-guidelines/#deprecation[deprecation]
 
 We strongly encourage using compatible API extensions and discourage versioning
 (see <<113>> and <<114>> below). The following guidelines for service providers
@@ -36,7 +38,7 @@ expected that code changes are necessary.
 
 
 [#107]
-== {SHOULD} Prefer Compatible Extensions
+== {SHOULD} prefer compatible extensions
 
 API designers should apply the following rules to evolve RESTful APIs for
 services in a backward-compatible way:
@@ -59,36 +61,8 @@ services in a backward-compatible way:
 * Support redirection in case an URL has to change {301} (Moved Permanently).
 
 
-[#108]
-== {MUST} Prepare Clients To Not Crash On Compatible API Extensions
-
-Service clients should apply the robustness principle:
-
-* Be conservative with API requests and data passed as input, e.g. avoid to
-  exploit definition deficits like passing megabytes of strings with
-  unspecified maximum length.
-* Be tolerant in processing and reading data of API responses, more
-  specifically...
-
-Service clients must be prepared for compatible API extensions of service
-providers:
-
-* Be tolerant with unknown fields in the payload (see also Fowler’s
-  http://martinfowler.com/bliki/TolerantReader.html["TolerantReader"] post),
-  i.e. ignore new fields but do not eliminate them from payload if needed for
-  subsequent {PUT} requests.
-* Be prepared that {x-extensible-enum} return parameter may deliver new values;
-  either be agnostic or provide default behavior for unknown values.
-* Be prepared to handle HTTP status codes not explicitly specified in endpoint
-  definitions. Note also, that status codes are extensible. Default handling is
-  how you would treat the corresponding {x00} code (see
-  {RFC-7231}#section-6[RFC 7231 Section 6]).
-* Follow the redirect when the server returns HTTP status code {301} (Moved
-  Permanently).
-
-
 [#109]
-== {SHOULD} Design APIs Conservatively
+== {SHOULD} design APIs conservatively
 
 Designers of service provider APIs should be conservative and accurate in what
 they accept from clients:
@@ -131,30 +105,43 @@ can be removed from the API definition as long as the server ignores this
 specific parameter.
 
 
-[#110]
-== {MUST} Always Return JSON Objects As Top-Level Data Structures To Support Extensibility
+[#108]
+== {MUST} prepare clients to accept compatible API extensions
 
-In a response body, you must always return a JSON object (and not e.g. an
-array) as a top level data structure to support future extensibility. JSON
-objects support compatible extension by additional attributes. This allows you
-to easily extend your response and e.g. add pagination later, without breaking
-backwards compatibility. See <<161>> for an example.
+Service clients should apply the robustness principle:
 
-Maps (see <<216>>), even though technically objects, are also forbidden as top
-level data structures, since they don't support compatible, future extensions.
+* Be conservative with API requests and data passed as input, e.g. avoid to
+  exploit definition deficits like passing megabytes of strings with
+  unspecified maximum length.
+* Be tolerant in processing and reading data of API responses, more
+  specifically service clients must be prepared for compatible API extensions
+  of response data:
+
+** Be tolerant with unknown fields in the payload (see also Fowler’s
+  http://martinfowler.com/bliki/TolerantReader.html["TolerantReader"] post),
+  i.e. ignore new fields but do not eliminate them from payload if needed for
+  subsequent {PUT} requests.
+** Be prepared that {x-extensible-enum} return parameter may deliver new values;
+  either be agnostic or provide default behavior for unknown values.
+** Be prepared to handle HTTP status codes not explicitly specified in endpoint
+  definitions. Note also, that status codes are extensible. Default handling is
+  how you would treat the corresponding {x00} code (see
+  {RFC-7231}#section-6[RFC 7231 Section 6]).
+** Follow the redirect when the server returns HTTP status code {301} (Moved
+  Permanently).
+
 
 [#111]
-== {MUST} Treat Open API Definitions As Open For Extension By Default
+== {MUST} treat OpenAPI specification as open for extension by default
 
-The Open API 2.0 specification is not very specific on default
-extensibility of objects, and redefines JSON-Schema keywords related to
-extensibility, like `additionalProperties`. Following our overall
-compatibility guidelines, Open API object definitions are considered
-open for extension by default as per
+The OpenAPI specification is not very specific on default extensibility
+of objects, and redefines JSON-Schema keywords related to extensibility, like
+`additionalProperties`. Following our compatibility guidelines, OpenAPI
+object definitions are considered open for extension by default as per
 http://json-schema.org/latest/json-schema-validation.html#rfc.section.5.18[Section
 5.18 "additionalProperties"] of JSON-Schema.
 
-When it comes to Open API 2.0, this means an `additionalProperties` declaration
+When it comes to OpenAPI, this means an `additionalProperties` declaration
 is not required to make an object definition extensible:
 
 * API clients consuming data must not assume that objects are closed for
@@ -173,41 +160,11 @@ prevents objects being extended in the future.
 
 Note that this guideline concentrates on default extensibility and does not
 exclude the use of `additionalProperties` with a schema as a value, which might
-be appropriate in some circumstances, e.g. see <<216>>. 
+be appropriate in some circumstances, e.g. see <<216>>.
 
-
-[#112]
-== {SHOULD} Used Open-Ended List of Values (`x-extensible-enum`) Instead of Enumerations
-
-Enumerations are per definition closed sets of values, that are assumed to be
-complete and not intended for extension. This closed principle of enumerations
-imposes compatibility issues when an enumeration must be extended. To avoid
-these issues, we strongly recommend to use an open-ended list of values instead
-of an enumeration unless:
-
-1. the API has full control of the enumeration values, i.e. the list of values
-  does not depend on any external tool or interface, and
-2. the list of value is complete with respect to any thinkable and unthinkable
-  future feature.
-
-To specify an open-ended list of values use the marker {x-extensible-enum} as
-follows:
-
-[source,yaml]
-----
-deliver_methods:
-  type: string
-  x-extensible-enum:
-    - parcel
-    - letter
-    - email
-----
-
-*Note:* {x-extensible-enum} is not JSON Schema conform but will be ignored by
-most tools.
 
 [#113]
-== {SHOULD} Avoid Versioning
+== {SHOULD} avoid versioning
 
 When changing your RESTful APIs, do so in a compatible way and avoid generating
 additional API versions. Multiple versions can significantly complicate
@@ -230,21 +187,37 @@ we strongly recommend to only use the first two approaches.
 
 
 [#114]
-== {MUST} Use Media Type Versioning
+== {MUST} use media type versioning
 
 However, when API versioning is unavoidable, you have to design your
-multi-version RESTful APIs using media type versioning (instead of URI
-versioning, see below). Media type versioning is less tightly coupled since
+multi-version RESTful APIs using media type versioning (see <<115>>).
+Media type versioning is less tightly coupled since
 it supports content negotiation and hence reduces complexity of release
 management.
 
-Media type versioning: Here, version information and media type are provided
-together via the HTTP Content-Type header — e.g.
+Version information and media type are provided
+together via the HTTP `Content-Type` header — e.g.
 `application/x.zalando.cart+json;version=2`. For incompatible changes, a new
 media type version for the resource is created. To generate the new
-representation version, consumer and producer can do content negotiation using
-the HTTP Content-Type and Accept headers. Note: This versioning only applies to
-the request and response content schema, not to URI or method semantics.
+representation version, consumer and producer can do <<244, content negotiation>> using
+the HTTP `Content-Type` and `Accept` headers.
+
+NOTE: This versioning method only applies to
+the request and response payload schema, not to URI or method semantics.
+
+=== Custom media type format
+
+Custom media type format should have the following pattern:
+
+[source,http]
+----
+application/x.<custom-media-type>+json;version=<version>
+----
+
+* `<custom-media-type>` is a custom type name, e.g. `x.zalando.cart`
+* `<version>` is a (sequence) number, e.g. `2`
+
+=== Example
 
 In this example, a client wants only the new version of the response:
 
@@ -254,7 +227,7 @@ Accept: application/x.zalando.cart+json;version=2
 ----
 
 A server responding to this, as well as a client sending a request with content
-should use the Content-Type header, declaring that one is sending the new
+should use the `Content-Type` header, declaring that one is sending the new
 version:
 
 [source,http]
@@ -262,29 +235,88 @@ version:
 Content-Type: application/x.zalando.cart+json;version=2
 ----
 
-Using header versioning should:
+Media type versioning should...
 
-* include versions in request and response headers to increase visibility
-* include Content-Type in the Vary header to enable proxy caches to differ
+* Use a custom media type, e.g. `application/x.zalando.cart+json`
+* Include media type versions in request and response headers to increase visibility
+* Include `Content-Type` in the `Vary` header to enable proxy caches to differ
   between versions
 
-*Hint:* Until an incompatible change is necessary, it is recommended to stay
-with the standard `application/json` media type.
+[source,http]
+----
+Vary: Content-Type
+----
 
-Further reading: 
+NOTE: Until an incompatible change is necessary, it is recommended to stay
+with the standard `application/json` media type without versioning.
+
+Further reading:
 https://blog.apisyouwonthate.com/api-versioning-has-no-right-way-f3c75457c0b7[API
 Versioning Has No "Right Way"] provides an overview on different versioning
-approaches to handle breaking changes without being opinionated. 
+approaches to handle breaking changes without being opinionated.
 
 
 [#115]
-== {MUST} Do Not Use URI Versioning
+== {MUST} not use URL versioning
 
-With URI versioning a (major) version number is included in the path, e.g.
+With URL versioning a (major) version number is included in the path, e.g.
 `/v1/customers`. The consumer has to wait until the provider has been released
 and deployed. If the consumer also supports hypermedia links — even in their
 APIs — to drive workflows (HATEOAS), this quickly becomes complex. So does
 coordinating version upgrades — especially with hyperlinked service
 dependencies — when using URL versioning. To avoid this tighter coupling and
-complexer release management we do not use URI versioning, and go instead with
-media type versioning and content negotiation (see above).
+complexer release management we do not use URL versioning, instead we <<114>>
+with content negotiation.
+
+
+[#110]
+== {MUST} always return JSON objects as top-level data structures
+
+In a response body, you must always return a JSON object (and not e.g. an
+array) as a top level data structure to support future extensibility. JSON
+objects support compatible extension by additional attributes. This allows you
+to easily extend your response and e.g. add pagination later, without breaking
+backwards compatibility. See <<161>> for an example.
+
+Maps (see <<216>>), even though technically objects, are also forbidden as top
+level data structures, since they don't support compatible, future extensions.
+
+
+[#112]
+== {SHOULD} used open-ended list of values (`x-extensible-enum`) for enumerations
+
+Enumerations are per definition closed sets of values that are assumed to be
+complete and not intended for extension. This closed principle of enumerations
+imposes compatibility issues when an enumeration must be extended. To avoid
+these issues, we strongly recommend to use an open-ended list of values instead
+of an enumeration unless:
+
+1. the API has full control of the enumeration values, i.e. the list of values
+  does not depend on any external tool or interface, and
+2. the list of values is complete with respect to any thinkable and unthinkable
+  future feature.
+
+To specify an open-ended list of values use the marker {x-extensible-enum} as
+follows:
+
+[source,yaml]
+----
+delivery_methods:
+  type: string
+  x-extensible-enum:
+    - PARCEL
+    - LETTER
+    - EMAIL
+----
+
+*Note:* {x-extensible-enum} is not JSON Schema conform but will be ignored by
+most tools.
+
+See <<240>> about enum value naming conventions.
+
+*Important:* Clients must be prepared for extensions of enums returned with server responses, i.e. 
+must implement a fallback / default behavior to handle unknown new enum values -- see <<108>>. 
+API owners must take care to extend enums in a compatible way that does not change the 
+semantics of already existing enum values, for instance, do not split an old enum value 
+into two new enum values. 
+

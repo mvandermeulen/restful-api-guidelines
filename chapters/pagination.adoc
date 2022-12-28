@@ -1,36 +1,34 @@
 [[pagination]]
-= Pagination
+= REST Design - Pagination
+
 
 [#159]
-== {MUST} Support Pagination
+== {MUST} support pagination
 
 Access to lists of data items must support pagination to protect the service
-against overload as well as for best client side iteration and batch processing
+against overload as well as to support client side iteration and batch processing
 experience. This holds true for all lists that are (potentially) larger than
 just a few hundred entries.
 
 There are two well known page iteration techniques:
 
-* https://developer.infoconnect.com/paging-results[Offset/Limit-based
-  pagination]: numeric offset identifies the first page entry
-* https://dev.twitter.com/overview/api/cursoring[Cursor/Limit-based] — aka
-  key-based — pagination: a unique key element identifies the first page entry
-  (see also https://developers.facebook.com/docs/graph-api/using-graph-api/v2.4#paging[Facebook’s
-  guide])
+* **Offset-based pagination**: numeric offset identifies the first page-entry
+* **Cursor-based pagination** — aka key-based pagination: a unique key identifies the first page-entry
+  (see also https://dev.twitter.com/overview/api/cursoring[Twitter API] or 
+  https://developers.facebook.com/docs/graph-api/results[Facebook API])
 
-The technical conception of pagination should also consider user experience
-related issues. As mentioned in this
-https://www.smashingmagazine.com/2016/03/pagination-infinite-scrolling-load-more-buttons/[article],
-jumping to a specific page is far less used than navigation via {next}/{prev}
-page links (See <<161>>). This favours cursor-based over offset-based
-pagination.
+The technical conception of pagination should also consider user experience (see 
+https://www.smashingmagazine.com/2016/03/pagination-infinite-scrolling-load-more-buttons/[Pagination Usability Findings In eCommerce]),
+for instance, jumping to a specific page is far less used than navigation via {next}/{prev}
+page links (see <<161>>). This favors an API design using cursor-based instead of 
+offset-based pagination -- see <<160>>.
 
 **Note:** To provide a consistent look and feel of pagination patterns,
 you must stick to the common query parameter names defined in <<137>>.
 
 
 [#160]
-== {SHOULD} Prefer Cursor-Based Pagination, Avoid Offset-Based Pagination
+== {SHOULD} prefer cursor-based pagination, avoid offset-based pagination
 
 Cursor-based pagination is usually better and more efficient when compared to
 offset-based pagination. Especially when it comes to high-data volumes and/or
@@ -58,88 +56,94 @@ Before choosing cursor-based pagination, consider the following trade-offs:
 
 The {cursor} used for pagination is an opaque pointer to a page, that must
 never be *inspected* or *constructed* by clients. It usually encodes (encrypts)
-the page position, i.e. the identifier of the first or last page element, the
-pagination direction, and the applied query filters - or a hash over these -
-to safely recreate the collection. The {cursor} may be defined as follows:
+the page position, i.e. the unique identifier of the first or last page element, the
+pagination direction, and the applied query filters (or a hash over these) to safely 
+recreate the collection (see also best practice <<cursor-based-pagination>> below).
+
+
+[#248]
+== {SHOULD} use pagination response page object
+
+[[pagination-fields]]
+For iterating over collections (result sets) we propose to either use cursors
+(see <<160>>) or simple hypertext control links (see <<161>>). To implement these
+in a consistent way, we have defined a response page object pattern with the
+following field semantics:
+
+* [[self]]{self}:the link or cursor pointing to the same page.
+* [[first]]{first}: the link or cursor pointing to the first page.
+* [[prev]]{prev}: the link or cursor pointing to the previous page. 
+It is not provided, if it is the first page. 
+* [[next]]{next}: the link or cursor pointing to the next page.
+It is not provided, if it is the last page. 
+* [[last]]{last}: the link or cursor pointing to the last page.
+
+Pagination responses should contain the following additional array field to
+transport the page content:
+
+* [[items]]{items}: array of resources, holding all the items of the current
+  page ({items} may be replaced by a resource name).
+
+To simplify user experience, the applied query filters may be returned using
+the following field (see also {GET-with-body}):
+
+* [[query]]{query}: object containing the query filters applied in the search
+  request to filter the collection resource.
+
+As Result, the standard response page using <<160, cursors>> or <<161,
+pagination links>> may be defined as follows:
 
 [source,yaml]
 ----
-Cursor:
+ResponsePage:
   type: object
-  properties: 
-    position:
-      description: >
-        Object containing the identifier(s) pointing to the entity that is
-        defining the collection resource page - normally the position is
-        represented by the first or the last page element.
-      type: object
-      properties: ...
-
-    direction:
-      description: >
-        The pagination direction that is defining which elements to choose
-        from the collection resource starting from the page position.
+  required:
+    - items
+  properties:
+    self:
+      description: Pagination link|cursor pointing to the current page.
       type: string
-      enum: [ ASC, DESC ]
+      format: uri|cursor
+    first:
+      description: Pagination link|cursor pointing to the first page.
+      type: string
+      format: uri|cursor
+    prev:
+      description: Pagination link|cursor pointing to the previous page.
+      type: string
+      format: uri|cursor
+    next:
+      description: Pagination link|cursor pointing to the next page.
+      type: string
+      format: uri|cursor
+    last:
+      description: Pagination link|cursor pointing to the last page.
+      type: string
+      format: uri|cursor
 
     query:
       description: >
-        Object containing the query filters applied to create the collection
-        resource that is represented by this cursor.
+        Object containing the query filters applied to the collection resource.
       type: object
       properties: ...
 
-    query_hash:
-      description: >
-        Stable hash calculated over all query filters applied to create the
-        collection resource that is represented by this cursor.
-      type: string
-
-  required:
-    - position
-    - direction
+    items:
+      description: Array of collection items.
+      type: array
+      required: false
+      items:
+        type: ...
 ----
 
-
-The page information for cursor-based pagination should consist of a {cursor}
-set, that besides {next} may provide support for {prev}, {first}, {last}, and
-{self} as follows (see also <<link-relation-fields>>):
-
-[source,json]
-----
-{
-  "cursors": {
-    "self": "...",
-    "first": "...",
-    "prev": "...",
-    "next": "...",
-    "last": "..."
-  },
-  "items": [... ]
-}
-----
-
-*Note:* The support of the {cursor} set may be dropped in favor of <<161>>.
-
-Further reading:
-
-* https://dev.twitter.com/rest/public/timelines[Twitter]
-* http://use-the-index-luke.com/no-offset[Use the Index, Luke]
-* https://www.citusdata.com/blog/1872-joe-nelson/409-five-ways-paginate-postgres-basic-exotic[Paging
-  in PostgreSQL]
+*Note:* While you may support cursors for {next}, {prev}, {first}, {last}, and
+{self}, it is best practice to replace these with pagination links -- see <<161>>.
 
 
 [#161]
-== {SHOULD} Use Pagination Links Where Applicable
+== {SHOULD} use pagination links
 
-To simplify client design, APIs should support <<165, simplified hypertext
-controls>> for pagination over collections whenever applicable. Beside {next}
-this may comprise the support for {prev}, {first}, {last}, and {self} as
-{link-relations}[link relations] (see also <<link-relation-fields>> for
-details).
-
-The page content is transported via {items}, while the {query} object may
-contain the query filters applied to the collection resource as follows:
+To simplify client design, APIs should support <<165, simplified hypertext controls>> 
+as standard pagination links where applicable:
 
 [source,json]
 ----
@@ -157,13 +161,7 @@ contain the query filters applied to the collection resource as follows:
 }
 ----
 
-*Note:* In case of complex search requests, e.g. when {GET-with-body} is
-required, the {cursor} may not be able to encode all query filters. In this
-case, it is best practice to encode only page position and direction in the
-{cursor} and transport the query filter in the body - in the request as well
-as in the response. To protect the pagination sequence, in this case it is
-recommended, that the {cursor} contains a hash over all applied query
-filters for pagination request validation.
+See also <<248>> for details on the pagination fields and page result object. 
 
 *Remark:* You should avoid providing a total count unless there is a clear
 need to do so. Very often, there are significant system and performance

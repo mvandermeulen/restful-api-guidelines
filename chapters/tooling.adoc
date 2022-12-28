@@ -7,9 +7,10 @@ Using a tool mentioned here doesn't automatically ensure you follow the guidelin
 
 
 [[api-first-integrations]]
-== API First Integrations
+== API first integrations
 
-The following frameworks were specifically designed to support the API First workflow with OpenAPI YAML files (sorted alphabetically):
+The following frameworks were specifically designed to support the API First
+workflow with OpenAPI YAML files (sorted alphabetically):
 
 * *https://github.com/zalando/connexion[Connexion]:*
   OpenAPI First framework for Python on top of Flask
@@ -26,13 +27,15 @@ The following frameworks were specifically designed to support the API First wor
   plugin to help you easily edit Swagger specification files inside IntelliJ IDEA
 
 The Swagger/OpenAPI homepage lists more
-http://swagger.io/open-source-integrations/[Community-Driven Language Integrations], but most of them do not fit our API First approach.
+http://swagger.io/open-source-integrations/[Community-Driven Language
+Integrations], but most of them do not fit our API First approach.
 
 
 [[support-libraries]]
-== Support Libraries
+== Support libraries
 
-These utility libraries support you in implementing various parts of our RESTful API guidelines (sorted alphabetically):
+These utility libraries support you in implementing various parts of our
+RESTful API guidelines (sorted alphabetically):
 
 * *https://github.com/zalando/problem[Problem]:*
   Java library that implements application/problem+json
@@ -44,4 +47,3 @@ These utility libraries support you in implementing various parts of our RESTful
   call tracing and log correlation in distributed systems
 * *https://github.com/zalando/twintip-spring-web[TWINTIP Spring Integration]:*
   API discovery endpoint for Spring Web MVC
-
